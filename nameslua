@@ -1,0 +1,83 @@
+--names, by @sn0w.devzzzz
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+
+local NameESP = {}
+NameESP.Enabled = true
+NameESP.Objects = {}
+
+function NameESP:Create(player)
+    if player == LocalPlayer then return end
+    if self.Objects[player] then return end
+    
+    local nameLabel = Drawing.new("Text")
+    nameLabel.Visible = false
+    nameLabel.Center = true
+    nameLabel.Outline = true
+    nameLabel.Color = Color3.fromRGB(255, 255, 255)
+    nameLabel.Size = 14
+    nameLabel.Text = player.DisplayName
+    
+    self.Objects[player] = nameLabel
+end
+
+function NameESP:Remove(player)
+    if self.Objects[player] then
+        self.Objects[player]:Remove()
+        self.Objects[player] = nil
+    end
+end
+
+function NameESP:Update()
+    for player, nameLabel in pairs(self.Objects) do
+        if not player or not player.Parent or not player.Character then
+            continue
+        end
+        
+        local character = player.Character
+        local head = character:FindFirstChild("Head")
+        
+        if not head then
+            nameLabel.Visible = false
+            continue
+        end
+        
+        local camera = workspace.CurrentCamera
+        local headPos, onScreen = camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
+        
+        if not onScreen or not self.Enabled then
+            nameLabel.Visible = false
+            continue
+        end
+        
+        nameLabel.Text = player.DisplayName
+        nameLabel.Position = Vector2.new(headPos.X, headPos.Y - 20)
+        nameLabel.Visible = true
+    end
+end
+
+
+for _, player in pairs(Players:GetPlayers()) do
+    if player ~= LocalPlayer then
+        NameESP:Create(player)
+    end
+end
+
+Players.PlayerAdded:Connect(function(player)
+    NameESP:Create(player)
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    NameESP:Remove(player)
+end)
+
+RunService.RenderStepped:Connect(function()
+    NameESP:Update()
+end)

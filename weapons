@@ -1,0 +1,91 @@
+--weapons esp,by @sn0w.devzz
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+
+
+local WeaponESP = {}
+WeaponESP.Enabled = true
+WeaponESP.Objects = {}
+
+function WeaponESP:Create(player)
+    if player == LocalPlayer then return end
+    if self.Objects[player] then return end
+    
+    local weaponLabel = Drawing.new("Text")
+    weaponLabel.Visible = false
+    weaponLabel.Center = true
+    weaponLabel.Outline = true
+    weaponLabel.Color = Color3.fromRGB(255, 255, 255)
+    weaponLabel.Size = 14
+    weaponLabel.Text = "None"
+    
+    self.Objects[player] = weaponLabel
+end
+
+function WeaponESP:Remove(player)
+    if self.Objects[player] then
+        self.Objects[player]:Remove()
+        self.Objects[player] = nil
+    end
+end
+
+function WeaponESP:GetWeapon(player)
+    if not player.Character then return "None" end
+    local tool = player.Character:FindFirstChildOfClass("Tool")
+    return tool and tool.Name or "None"
+end
+
+function WeaponESP:Update()
+    for player, weaponLabel in pairs(self.Objects) do
+        if not player or not player.Parent or not player.Character then
+            continue
+        end
+        
+        local character = player.Character
+        local rootPart = character:FindFirstChild("HumanoidRootPart")
+        
+        if not rootPart then
+            weaponLabel.Visible = false
+            continue
+        end
+        
+        local camera = workspace.CurrentCamera
+        local legPos, onScreen = camera:WorldToViewportPoint(rootPart.Position - Vector3.new(0, 3, 0))
+        
+        if not onScreen or not self.Enabled then
+            weaponLabel.Visible = false
+            continue
+        end
+        
+        local weapon = self:GetWeapon(player)
+        weaponLabel.Text = weapon
+        weaponLabel.Position = Vector2.new(legPos.X, legPos.Y + 20)
+        weaponLabel.Visible = true
+    end
+end
+
+
+for _, player in pairs(Players:GetPlayers()) do
+    if player ~= LocalPlayer then
+        WeaponESP:Create(player)
+    end
+end
+
+Players.PlayerAdded:Connect(function(player)
+    WeaponESP:Create(player)
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    WeaponESP:Remove(player)
+end)
+
+RunService.RenderStepped:Connect(function()
+    WeaponESP:Update()
+end)

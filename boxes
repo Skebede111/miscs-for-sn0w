@@ -1,0 +1,92 @@
+--boxes, by @sn0w.devzz
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+
+
+
+local BoxESP = {}
+BoxESP.Enabled = true
+BoxESP.Objects = {}
+
+function BoxESP:Create(player)
+    if player == LocalPlayer then return end
+    if self.Objects[player] then return end
+    
+    local box = Drawing.new("Square")
+    box.Visible = false
+    box.Color = Color3.fromRGB(255, 255, 255)
+    box.Thickness = 2
+    box.Transparency = 1
+    box.Filled = false
+    
+    self.Objects[player] = box
+end
+
+function BoxESP:Remove(player)
+    if self.Objects[player] then
+        self.Objects[player]:Remove()
+        self.Objects[player] = nil
+    end
+end
+
+function BoxESP:Update()
+    for player, box in pairs(self.Objects) do
+        if not player or not player.Parent or not player.Character then
+            continue
+        end
+        
+        local character = player.Character
+        local rootPart = character:FindFirstChild("HumanoidRootPart")
+        local head = character:FindFirstChild("Head")
+        
+        if not rootPart or not head then
+            box.Visible = false
+            continue
+        end
+        
+        local camera = workspace.CurrentCamera
+        local rootPos, onScreen = camera:WorldToViewportPoint(rootPart.Position)
+        
+        if not onScreen or not self.Enabled then
+            box.Visible = false
+            continue
+        end
+        
+        local headPos = camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
+        local legPos = camera:WorldToViewportPoint(rootPart.Position - Vector3.new(0, 3, 0))
+        
+        local height = math.abs(headPos.Y - legPos.Y)
+        local width = height / 2
+        
+        box.Size = Vector2.new(width, height)
+        box.Position = Vector2.new(rootPos.X - width / 2, rootPos.Y - height / 2)
+        box.Visible = true
+    end
+end
+
+
+task.wait(1)
+for _, player in pairs(Players:GetPlayers()) do
+    if player ~= LocalPlayer then
+        BoxESP:Create(player)
+    end
+end
+
+Players.PlayerAdded:Connect(function(player)
+    BoxESP:Create(player)
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    BoxESP:Remove(player)
+end)
+
+RunService.RenderStepped:Connect(function()
+    BoxESP:Update()
+end)
